@@ -1,0 +1,6 @@
+[submodule "vendor/http"]
+	path = vendor/http
+	url = git@github.com:laytan/odin-http.git
+[submodule "vendor/temple"]
+	path = vendor/temple
+	url = git@github.com:laytan/temple.git

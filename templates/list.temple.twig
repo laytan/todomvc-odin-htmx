@@ -1,0 +1,60 @@
+<div id="todos">
+	<section class="main">
+		<input
+			hx-target="#todos"
+			hx-swap="outerHTML"
+			hx-post="/todos/toggle"
+
+			class="toggle-all"
+			type="checkbox"
+			id="toggle-all"
+		>
+		<label for="toggle-all">Mark all as complete</label>
+		<ul class="todo-list">
+			{% for todo in this.todos %}
+				{% embed "todo.temple.twig" with todo %}
+			{% end %}
+		</ul>
+	</section>
+
+	<footer class="footer">
+
+		{% embed "count.temple.twig" with this.count %}
+
+		<ul class="filters">
+			<li>
+				<a
+					{% if this.page == .All %}
+					class="selected"
+					{% else %}
+					hx-get="/" hx-target="#todos"
+					hx-push-url="true"
+					href="/"
+					{% end %}
+				>All</a>
+			</li>
+			<li>
+				<a
+					{% if this.page == .Active %}
+					class="selected"
+					{% else %}
+					hx-get="/active" hx-target="#todos"
+					hx-push-url="true"
+					href="/active"
+					{% end %}
+				>Active</a>
+			</li>
+			<li>
+				<a
+					{% if this.page == .Completed %}
+					class="selected"
+					{% else %}
+					hx-get="/completed" hx-target="#todos"
+					hx-push-url="true"
+					href="/completed"
+					{% end %}
+				>Completed</a>
+			</li>
+		</ul>
+	</footer>
+</div>

@@ -1,0 +1,26 @@
+<div
+	{% if this.oob %}
+	hx-swap-oob="true"
+	{% end %}
+	id="count"
+>
+	<div class="todo-count">
+		<strong>{{ int(this.active) }}</strong>
+
+		{% if this.active == 1 %}
+			<span> item left</span>
+		{% else %}
+			<span> items left</span>
+		{% end %}
+	</div>
+
+	{% if this.completed > 0 %}
+		<button
+			hx-delete="/todos/completed"
+			hx-target="#todos"
+			hx-swap="outerHTML"
+			class="clear-completed"
+			style="z-index: 1;"
+		>Clear completed</button>
+	{% end %}
+</div>

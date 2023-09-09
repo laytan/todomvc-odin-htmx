@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>HTMX + Odin • TodoMVC</title>
+
+		<link rel="stylesheet" href="/todomvc-app-css@2.4.2-index.css">
+	</head>
+	<body>
+		<section class="todoapp">
+
+			<header class="header">
+				<h1>todos</h1>
+				<form
+					hx-post="/todos"
+					hx-swap="afterbegin transition:true"
+					hx-target=".todo-list"
+					hx-on::before-request="htmx.find(this, 'input').value = ''"
+				>
+					<input class="new-todo" name="title" placeholder="What needs to be done?" autofocus>
+				</form>
+			</header>
+
+			{% embed "list.temple.twig" %}
+
+		</section>
+
+		<footer class="info">
+			<p>Double-click to edit a todo</p>
+			<p>Created by <a href="https://twitter.com/LaytanL_">Laytan</a></p>
+			<p>Part of <a href="https://todomvc.com">TodoMVC</a></p>
+		</footer>
+
+		<script src="/htmx@1.9.5.min.js"></script>
+	</body>
+</html>

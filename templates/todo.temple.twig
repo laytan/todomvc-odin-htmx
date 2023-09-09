@@ -1,0 +1,30 @@
+<li id="todo-{{ int(this.id) }}" {% if this.completed %}class="completed"{% end %}>
+	<form
+		hx-patch="/todos/{{ int(this.id) }}"
+		hx-target="#todo-{{ int(this.id) }}"
+		hx-swap="outerHTML"
+		hx-trigger="submit, change"
+	>
+		<input name="id" value="{{ int(this.id) }}" type="hidden">
+
+		<div class="view">
+			<input class="toggle" name="completed" type="checkbox"
+			{% if this.completed %}checked{% end %}>
+
+			<label hx-on:dblclick="htmx.addClass(htmx.closest(this, 'li'), 'editing')">
+				{{ this.title }}
+			</label>
+
+			<button
+				hx-delete="/todos/{{ int(this.id) }}"
+				hx-target="#todo-{{ int(this.id) }}"
+				hx-swap="outerHTML transition:true"
+				type="button"
+				style="cursor:pointer;"
+				class="destroy"
+			></button>
+		</div>
+
+		<input class="edit" name="title" value="{{ this.title }}">
+	</form>
+</li>
