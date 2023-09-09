@@ -22,7 +22,7 @@ Sessions :: struct {
 	mu:                 sync.RW_Mutex,
 }
 
-@(private="file")
+@(private = "file")
 sessions: Sessions
 
 /*
@@ -117,7 +117,10 @@ session_get :: proc(req: ^http.Request) -> ^Session {
 	return s
 }
 
-Item :: struct {todo: ^Todo, index: int}
+Item :: struct {
+	todo:  ^Todo,
+	index: int,
+}
 session_get_todo :: proc(session: ^Session, id: int) -> Maybe(Item) {
 	for todo, i in session.list {
 		if todo.id == id do return Item{todo, i}

@@ -52,28 +52,29 @@ main :: proc() {
 	r: http.Router
 	http.router_init(&r)
 
-    // Listing, with filtering.
-	http.route_get(   &r, "/",                 http.handler(handler_index))
-	http.route_get(   &r, "/active",           http.handler(handler_index))
-	http.route_get(   &r, "/completed",        http.handler(handler_index))
+	// Listing, with filtering.
+	http.route_get(&r,    "/",                http.handler(handler_index))
+	http.route_get(&r,    "/active",          http.handler(handler_index))
+	http.route_get(&r,    "/completed",       http.handler(handler_index))
 
-    // Deletes all completed.
-	http.route_delete(&r, "/todos/completed",  http.handler(handler_clean))
+	// Deletes all completed.
+	http.route_delete(&r, "/todos/completed", http.handler(handler_clean))
 
-    // Toggles all.
-	http.route_post(  &r, "/todos/toggle",     http.handler(handler_toggle))
+	// Toggles all.
+	http.route_post(&r,   "/todos/toggle",    http.handler(handler_toggle))
 
-    // Creates one.
-	http.route_post(  &r, "/todos",            http.handler(handler_create_todo))
+	// Creates one.
+	http.route_post(&r,   "/todos",           http.handler(handler_create_todo))
 
-    // Changes or deletes one.
-	http.route_patch( &r, "/todos/(%d+)",      http.handler(handler_todo_patch))
-	http.route_delete(&r, "/todos/(%d+)",      http.handler(handler_delete_todo))
+	// Changes or deletes one.
+	http.route_patch(&r,  "/todos/(%d+)",     http.handler(handler_todo_patch))
+	http.route_delete(&r, "/todos/(%d+)",     http.handler(handler_delete_todo))
 
 	// Static files, easiest is this:
 	// http.route_get(&r, ".*", http.handler(proc(req: ^http.Request, res: ^http.Response) {
 	// 	http.respond_dir(res, "/", "static", req.url.path)
 	// }))
+
 	// Faster and more portable (files are in the executable) is this:
 	http.route_get(&r, "/favicon%.ico", http.handler(proc(_: ^http.Request, r: ^http.Response) {
 		http.respond_file_content(r, "favicon.ico", #load("static/favicon.ico"))
@@ -107,14 +108,14 @@ page_parse :: proc(val: string) -> Page {
 }
 
 page_from_path :: proc(req: string) -> Page {
-	page := req[strings.last_index_byte(req, '/')+1:]
-    return page_parse(page)
+	page := req[strings.last_index_byte(req, '/') + 1:]
+	return page_parse(page)
 }
 
 handler_index :: proc(req: ^http.Request, res: ^http.Response) {
-    session := session_get(req)
+	session := session_get(req)
 
-    is_htmx := "hx-request" in req.headers
+	is_htmx := "hx-request" in req.headers
 	respond_list(res, !is_htmx, session, page_from_path(req.url.path))
 }
 
@@ -136,25 +137,26 @@ handler_create_todo :: proc(req: ^http.Request, res: ^http.Response) {
 				return
 			}
 
-			@static _id: int
+			@(static)
+			_id: int
 			tid := sync.atomic_add(&_id, 1)
 
 			session := session_get(req)
 
-			todo      := new(Todo)
-            todo.id    = tid
-            todo.title = strings.clone(title)
+			todo := new(Todo)
+			todo.id = tid
+			todo.title = strings.clone(title)
 
 			append(&session.list, todo)
 
-            // Don't want to show the item when we are on the /completed page.
+			// Don't want to show the item when we are on the /completed page.
 			switch page_from_path(req.headers["hx-current-url"]) {
 			case .All, .Active:
 				bytes.buffer_grow(&res.body, tmpl_todo.approx_bytes + tmpl_count.approx_bytes)
-                w := bytes.buffer_to_stream(&res.body)
+				w := bytes.buffer_to_stream(&res.body)
 
 				tmpl_todo.with(w, todo)
-                tmpl_count.with(w, count(session))
+				tmpl_count.with(w, count(session))
 
 				http.respond(res, http.Status.OK, http.Mime_Type.Html)
 				return
@@ -162,7 +164,7 @@ handler_create_todo :: proc(req: ^http.Request, res: ^http.Response) {
 			case .Completed:
 				// Only render the footer/count changes.
 				bytes.buffer_grow(&res.body, tmpl_count.approx_bytes)
-                tmpl_count.with(bytes.buffer_to_stream(&res.body), count(session))
+				tmpl_count.with(bytes.buffer_to_stream(&res.body), count(session))
 
 				http.respond(res, http.Status.OK, http.Mime_Type.Html)
 				return
@@ -320,27 +322,27 @@ handler_clean :: proc(req: ^http.Request, res: ^http.Response) {
 }
 
 respond_list :: proc(res: ^http.Response, full_page: bool, session: ^Session, page: Page) {
-    l: List
+	l: List
 	l.count     = count(session)
 	l.count.oob = false
-	l.page  = page
-	l.todos = session.list[:]
+	l.page      = page
+	l.todos     = session.list[:]
 
-	slice.sort_by(session.list[:], proc(a, b: ^Todo) -> bool { return a.id > b.id })
+	slice.sort_by(session.list[:], proc(a, b: ^Todo) -> bool {return a.id > b.id})
 
-    // Apply filtering.
+	// Apply filtering.
 	if page == .Active || page == .Completed {
 		n := l.count.completed if page == .Completed else l.count.active
-        filtered := make([dynamic]^Todo, 0, n, context.temp_allocator)
-        defer l.todos = filtered[:]
+		filtered := make([dynamic]^Todo, 0, n, context.temp_allocator)
+		defer l.todos = filtered[:]
 
-        for todo in session.list {
-            if todo.completed && page == .Completed {
-                append(&filtered, todo)
-            } else if !todo.completed && page == .Active {
-                append(&filtered, todo)
-            }
-        }
+		for todo in session.list {
+			if todo.completed && page == .Completed {
+				append(&filtered, todo)
+			} else if !todo.completed && page == .Active {
+				append(&filtered, todo)
+			}
+		}
 	}
 
 	tmpl := tmpl_index if full_page else tmpl_list
