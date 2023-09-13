@@ -38,7 +38,8 @@ import "vendor/http"
 // [ ] have to fully specify status/content type namespace, is this an Odin "bug" we can fix?
 // [ ] for more performance, we should say, write your headers and status code, then write your body,
 //     this way we make the Response.body buffer the actual buffer that gets send, instead of more copying.
-// [ ] net.IP4_Any should be the default address
+// [x] net.IP4_Any should be the default address
+// [x] lots of logs, new connection should be a debug log
 
 Todo :: struct {
 	id:        int,
@@ -55,7 +56,7 @@ init :: proc() {
 
 main :: proc() {
 	context.logger = log.create_console_logger(
-		.Debug when ODIN_DEBUG else .Info,
+		.Debug,
 		log.Options{.Level, .Time, .Short_File_Path, .Line, .Terminal_Color, .Thread_Id},
 	)
 
@@ -325,6 +326,8 @@ handler_toggle :: proc(req: ^http.Request, res: ^http.Response) {
 		todo.completed = !all_completed
 	}
 
+	session.completed = 0 if all_completed else len(session.list)
+
 	respond_list(res, false, session, page_from_path(req.headers["hx-current-url"]))
 }
 
@@ -333,6 +336,7 @@ handler_clean :: proc(req: ^http.Request, res: ^http.Response) {
 
 	for todo, i in session.list {
 		if todo.completed {
+			session.completed -= 1
 			delete(todo.title)
 			unordered_remove(&session.list, i)
 			free(todo)
