@@ -3,6 +3,7 @@ package main
 import "core:bytes"
 import "core:fmt"
 import "core:log"
+import "core:net"
 import "core:slice"
 import "core:strconv"
 import "core:strings"
@@ -36,6 +37,7 @@ import "vendor/http"
 // [ ] have to fully specify status/content type namespace, is this an Odin "bug" we can fix?
 // [ ] for more performance, we should say, write your headers and status code, then write your body,
 //     this way we make the Response.body buffer the actual buffer that gets send, instead of more copying.
+// [ ] net.IP4_Any should be the default address
 
 Todo :: struct {
 	id:        int,
@@ -46,7 +48,10 @@ Todo :: struct {
 INDEX :: "http://localhost:8080"
 
 main :: proc() {
-	context.logger = log.create_console_logger(.Debug when ODIN_DEBUG else .Info)
+	context.logger = log.create_console_logger(
+		.Debug when ODIN_DEBUG else .Info,
+		log.Options{.Level, .Time, .Short_File_Path, .Line, .Terminal_Color, .Thread_Id},
+	)
 
 	server: http.Server
 	r: http.Router
@@ -89,7 +94,12 @@ main :: proc() {
 	routed    := http.router_handler(&r)
 	sessioned := http.middleware_proc(&routed, session_middleware)
 
-	err := http.listen_and_serve(&server, sessioned)
+	log.info("Listening on port 8080")
+
+	err := http.listen_and_serve(&server, sessioned, net.Endpoint{
+		address = net.IP4_Any,
+		port    = 8080,
+	})
 	fmt.assertf(err == nil, "Server error: %v", err)
 }
 
