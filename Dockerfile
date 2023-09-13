@@ -20,6 +20,8 @@ FROM scratch
 
 COPY --from=0 /app/todomvc /bin/todomvc
 
+ENV INDEX
+
 EXPOSE 8080
 
 CMD ["/bin/todomvc"]

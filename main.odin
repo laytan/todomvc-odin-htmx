@@ -8,6 +8,7 @@ import "core:slice"
 import "core:strconv"
 import "core:strings"
 import "core:sync"
+import "core:os"
 
 import "vendor/http"
 
@@ -45,7 +46,12 @@ Todo :: struct {
 	completed: bool,
 }
 
-INDEX :: "http://localhost:8080"
+INDEX: string
+
+@(init)
+init :: proc() {
+	INDEX = os.lookup_env("INDEX") or_else "http://localhost:8080"
+}
 
 main :: proc() {
 	context.logger = log.create_console_logger(
