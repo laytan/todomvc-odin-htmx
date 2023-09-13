@@ -56,7 +56,7 @@ init :: proc() {
 
 main :: proc() {
 	context.logger = log.create_console_logger(
-		.Debug,
+		.Info,
 		log.Options{.Level, .Time, .Short_File_Path, .Line, .Terminal_Color, .Thread_Id},
 	)
 
@@ -105,10 +105,24 @@ main :: proc() {
 
 	routed    := http.router_handler(&r)
 	sessioned := http.middleware_proc(&routed, session_middleware)
+	logged    := http.middleware_proc(
+		&sessioned,
+		proc(h: ^http.Handler, req: ^http.Request, res: ^http.Response) {
+			log.infof(
+				"%s %q, from %q via %q",
+				http.method_string(req.line.?.method),
+				req.url.raw,
+				req.headers["user-agent"] or_else "no user-agent",
+				req.headers["referer"]    or_else "no referer",
+			)
+
+			h.next.?.handle(h.next.?, req, res)
+		},
+	)
 
 	log.info("Listening on port 8080")
 
-	err := http.listen_and_serve(&server, sessioned, net.Endpoint{
+	err := http.listen_and_serve(&server, logged, net.Endpoint{
 		address = net.IP4_Any,
 		port    = 8080,
 	})
