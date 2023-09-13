@@ -30,7 +30,7 @@ Makes sure every request has a valid session.
 */
 session_middleware :: proc(h: ^http.Handler, req: ^http.Request, res: ^http.Response) {
 	session := session_get(req)
-	if session != nil {
+	if session != nil || req.url.path == "/health" {
 		h.next.?.handle(h.next.?, req, res)
 		return
 	}

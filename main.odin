@@ -63,6 +63,11 @@ main :: proc() {
 	r: http.Router
 	http.router_init(&r)
 
+	// Health check.
+	http.route_get(&r, "/health", http.handler(proc(_: ^http.Request, r: ^http.Response) {
+		http.respond(r, http.Status.OK)
+	}))
+
 	// Listing, with filtering.
 	http.route_get(&r,    "/",                http.handler(handler_index))
 	http.route_get(&r,    "/active",          http.handler(handler_index))
