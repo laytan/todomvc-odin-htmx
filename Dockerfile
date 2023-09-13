@@ -20,7 +20,7 @@ FROM scratch
 
 COPY --from=0 /app/todomvc /bin/todomvc
 
-ENV INDEX
+ENV INDEX=
 
 EXPOSE 8080
 
