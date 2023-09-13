@@ -71,7 +71,7 @@ sessions_register_cleaner :: proc(s: ^http.Server) {
 
 	clean_sessions :: proc(s: rawptr, now_: Maybe(time.Time)) {
 		s := cast(^http.Server)s
-		nbio.timeout(&s.io, CLEAN_INTERVAL, s, clean_sessions)
+		nbio.timeout(&http.td.io, CLEAN_INTERVAL, s, clean_sessions)
 
 		now := now_.? or_else time.now()
 
@@ -94,7 +94,7 @@ sessions_register_cleaner :: proc(s: ^http.Server) {
 			delete(sid)
 		}
 	}
-	nbio.timeout(&s.io, CLEAN_INTERVAL, s, clean_sessions)
+	nbio.timeout(&http.td.io, CLEAN_INTERVAL, s, clean_sessions)
 }
 
 /*
