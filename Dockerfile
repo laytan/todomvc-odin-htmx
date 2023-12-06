@@ -23,12 +23,8 @@ RUN odin build vendor/temple/cli -out:./temple && ./temple . vendor/temple
 # RUN odin build . -o:speed -disable-assert -no-bounds-check -debug -out:todomvc -extra-linker-flags:"-static"
 RUN odin build . -o:speed -debug -out:todomvc -extra-linker-flags:"-lexecinfo -static"
 
-FROM scratch
-
-COPY --from=0 /app/todomvc /bin/todomvc
-
 ENV INDEX=
 
 EXPOSE 8080
 
-CMD ["/bin/todomvc"]
+CMD ["/app/todomvc"]
