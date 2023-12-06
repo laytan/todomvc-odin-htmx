@@ -30,7 +30,6 @@ Makes sure every request has a valid session.
 session_middleware :: proc(h: ^http.Handler, req: ^http.Request, res: ^http.Response) {
 	session := session_get(req)
 	if session != nil || req.url.path == "/health" {
-		if session != nil do log.info("existing session")
 		h.next.?.handle(h.next.?, req, res)
 		return
 	}
@@ -42,7 +41,6 @@ session_middleware :: proc(h: ^http.Handler, req: ^http.Request, res: ^http.Resp
 	sid := base32.encode(id[:])
 
 	session = new(Session)
-	defer log.info("new session, got %d now: %s", len(sessions.entries), session)
 	session.last_activity = time.now()
 	{
 		sync.guard(&sessions.mu)
@@ -67,7 +65,7 @@ Periodically checks for inactive sessions and deletes them.
 */
 sessions_register_cleaner :: proc(s: ^http.Server) {
 	CLEAN_INTERVAL :: time.Hour
-	INACTIVE_TIME  :: time.Hour * 6
+	INACTIVE_TIME  :: time.Hour * 3
 
 	clean_sessions :: proc(s: rawptr, now_: Maybe(time.Time)) {
 		s := cast(^http.Server)s
@@ -106,7 +104,6 @@ session_get :: proc(req: ^http.Request) -> ^Session {
 
 	sync.shared_guard(&sessions.mu)
 	s := sessions.entries[session]
-	log.info("got existing session: ", s)
 	if s != nil do s.last_activity = time.now()
 	return s
 }

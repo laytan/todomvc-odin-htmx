@@ -2,14 +2,15 @@ package main
 
 import "core:bytes"
 import "core:fmt"
+import "core:io"
 import "core:log"
 import "core:net"
+import "core:os"
 import "core:slice"
 import "core:strconv"
 import "core:strings"
 import "core:sync"
-import "core:os"
-import "core:io"
+import "core:time"
 
 import "vendor/http"
 import bt "vendor/obacktracing"
@@ -97,21 +98,35 @@ main :: proc() {
 	// 	http.respond_dir(res, "/", "static", req.url.path)
 	// }))
 
+    STATIC_CACHE_CONTROL :: "public, max-age=604800"
+
 	// Faster and more portable (files are in the executable) is this:
 	http.route_get(&r, "/favicon%.ico", http.handler(proc(_: ^http.Request, r: ^http.Response) {
+        http.headers_set_unsafe(&r.headers, "cache-control", STATIC_CACHE_CONTROL)
 		http.respond_file_content(r, "favicon.ico", #load("static/favicon.ico"))
 	}))
 	http.route_get(&r, "/htmx@1%.%9%.5%.min%.js", http.handler(proc(_: ^http.Request, r: ^http.Response) {
+        http.headers_set_unsafe(&r.headers, "cache-control", STATIC_CACHE_CONTROL)
 		http.respond_file_content(r, "htmx@1.9.5.min.js", #load("static/htmx@1.9.5.min.js"))
 	}))
 	http.route_get(&r, "/todomvc%-app%-css@2%.4%.2%-index%.css", http.handler(proc(_: ^http.Request, r: ^http.Response) {
+        http.headers_set_unsafe(&r.headers, "cache-control", STATIC_CACHE_CONTROL)
 		http.respond_file_content(r, "todomvc-app-css@2.4.2-index.css", #load("static/todomvc-app-css@2.4.2-index.css"))
 	}))
 
 	routed    := http.router_handler(&r)
 	sessioned := http.middleware_proc(&routed, session_middleware)
+
+    rate_limit_data: http.Rate_Limit_Data
+    limited_msg  := "Slow down, you have been rate limited! Try again in 30 seconds."
+    rate_limited := http.rate_limit(&rate_limit_data, &sessioned, &{
+        window   = time.Second * 30,
+        max      = 30,
+        on_limit = http.rate_limit_message(&limited_msg),
+    })
+
 	logged    := http.middleware_proc(
-		&sessioned,
+		&rate_limited,
 		proc(h: ^http.Handler, req: ^http.Request, res: ^http.Response) {
 			log.infof(
 				"%s %q, from %q via %q",
