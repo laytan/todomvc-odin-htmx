@@ -45,77 +45,77 @@ import bt "vendor/obacktracing"
 // [x] lots of logs, new connection should be a debug log
 
 Todo :: struct {
-	id:        int,
-	title:     string,
-	completed: bool,
+    id:        int,
+    title:     string,
+    completed: bool,
 }
 
 INDEX: string
 
 @(init)
 init :: proc() {
-	INDEX = os.lookup_env("INDEX") or_else "http://localhost:8080"
+    INDEX = os.lookup_env("INDEX") or_else "http://localhost:8080"
 }
 
 main :: proc() {
-	context.logger = log.create_console_logger(
-		.Info,
-		log.Options{.Level, .Time, .Short_File_Path, .Line, .Terminal_Color, .Thread_Id},
-	)
+    context.logger = log.create_console_logger(
+        .Info,
+        log.Options{.Level, .Time, .Short_File_Path, .Line, .Terminal_Color, .Thread_Id},
+    )
 
     bt.register_segfault_handler()
     context.assertion_failure_proc = bt.assertion_failure_proc
 
-	server: http.Server
-	r: http.Router
-	http.router_init(&r)
+    server: http.Server
+    r: http.Router
+    http.router_init(&r)
 
-	// Health check.
-	http.route_get(&r, "/health", http.handler(proc(_: ^http.Request, r: ^http.Response) {
-		http.respond(r, http.Status.OK)
-	}))
+    // Health check.
+    http.route_get(&r, "/health", http.handler(proc(_: ^http.Request, r: ^http.Response) {
+        http.respond(r, http.Status.OK)
+    }))
 
-	// Listing, with filtering.
-	http.route_get(&r,    "/",                http.handler(handler_index))
-	http.route_get(&r,    "/active",          http.handler(handler_index))
-	http.route_get(&r,    "/completed",       http.handler(handler_index))
+    // Listing, with filtering.
+    http.route_get(&r,    "/",                http.handler(handler_index))
+    http.route_get(&r,    "/active",          http.handler(handler_index))
+    http.route_get(&r,    "/completed",       http.handler(handler_index))
 
-	// Deletes all completed.
-	http.route_delete(&r, "/todos/completed", http.handler(handler_clean))
+    // Deletes all completed.
+    http.route_delete(&r, "/todos/completed", http.handler(handler_clean))
 
-	// Toggles all.
-	http.route_post(&r,   "/todos/toggle",    http.handler(handler_toggle))
+    // Toggles all.
+    http.route_post(&r,   "/todos/toggle",    http.handler(handler_toggle))
 
-	// Creates one.
-	http.route_post(&r,   "/todos",           http.handler(handler_create_todo))
+    // Creates one.
+    http.route_post(&r,   "/todos",           http.handler(handler_create_todo))
 
-	// Changes or deletes one.
-	http.route_patch(&r,  "/todos/(%d+)",     http.handler(handler_todo_patch))
-	http.route_delete(&r, "/todos/(%d+)",     http.handler(handler_delete_todo))
+    // Changes or deletes one.
+    http.route_patch(&r,  "/todos/(%d+)",     http.handler(handler_todo_patch))
+    http.route_delete(&r, "/todos/(%d+)",     http.handler(handler_delete_todo))
 
-	// Static files, easiest is this:
-	// http.route_get(&r, ".*", http.handler(proc(req: ^http.Request, res: ^http.Response) {
-	// 	http.respond_dir(res, "/", "static", req.url.path)
-	// }))
+    // Static files, easiest is this:
+    // http.route_get(&r, ".*", http.handler(proc(req: ^http.Request, res: ^http.Response) {
+    //  http.respond_dir(res, "/", "static", req.url.path)
+    // }))
 
     STATIC_CACHE_CONTROL :: "public, max-age=604800"
 
-	// Faster and more portable (files are in the executable) is this:
-	http.route_get(&r, "/favicon%.ico", http.handler(proc(_: ^http.Request, r: ^http.Response) {
+    // Faster and more portable (files are in the executable) is this:
+    http.route_get(&r, "/favicon%.ico", http.handler(proc(_: ^http.Request, r: ^http.Response) {
         http.headers_set_unsafe(&r.headers, "cache-control", STATIC_CACHE_CONTROL)
-		http.respond_file_content(r, "favicon.ico", #load("static/favicon.ico"))
-	}))
-	http.route_get(&r, "/htmx@1%.%9%.5%.min%.js", http.handler(proc(_: ^http.Request, r: ^http.Response) {
+        http.respond_file_content(r, "favicon.ico", #load("static/favicon.ico"))
+    }))
+    http.route_get(&r, "/htmx@1%.%9%.5%.min%.js", http.handler(proc(_: ^http.Request, r: ^http.Response) {
         http.headers_set_unsafe(&r.headers, "cache-control", STATIC_CACHE_CONTROL)
-		http.respond_file_content(r, "htmx@1.9.5.min.js", #load("static/htmx@1.9.5.min.js"))
-	}))
-	http.route_get(&r, "/todomvc%-app%-css@2%.4%.2%-index%.css", http.handler(proc(_: ^http.Request, r: ^http.Response) {
+        http.respond_file_content(r, "htmx@1.9.5.min.js", #load("static/htmx@1.9.5.min.js"))
+    }))
+    http.route_get(&r, "/todomvc%-app%-css@2%.4%.2%-index%.css", http.handler(proc(_: ^http.Request, r: ^http.Response) {
         http.headers_set_unsafe(&r.headers, "cache-control", STATIC_CACHE_CONTROL)
-		http.respond_file_content(r, "todomvc-app-css@2.4.2-index.css", #load("static/todomvc-app-css@2.4.2-index.css"))
-	}))
+        http.respond_file_content(r, "todomvc-app-css@2.4.2-index.css", #load("static/todomvc-app-css@2.4.2-index.css"))
+    }))
 
-	routed    := http.router_handler(&r)
-	sessioned := http.middleware_proc(&routed, session_middleware)
+    routed    := http.router_handler(&r)
+    sessioned := http.middleware_proc(&routed, session_middleware)
 
     rate_limit_data: http.Rate_Limit_Data
     limited_msg  := "Slow down, you have been rate limited! Try again in 30 seconds."
@@ -125,73 +125,73 @@ main :: proc() {
         on_limit = http.rate_limit_message(&limited_msg),
     })
 
-	logged    := http.middleware_proc(
-		&rate_limited,
-		proc(h: ^http.Handler, req: ^http.Request, res: ^http.Response) {
-			log.infof(
-				"%s %q, from %q via %q",
-				http.method_string(req.line.?.method),
-				req.url.raw,
-				http.headers_get_unsafe(req.headers, "user-agent"),
-				http.headers_get_unsafe(req.headers, "referer"),
-			)
+    logged    := http.middleware_proc(
+        &rate_limited,
+        proc(h: ^http.Handler, req: ^http.Request, res: ^http.Response) {
+            log.infof(
+                "%s %q, from %q via %q",
+                http.method_string(req.line.?.method),
+                req.url.raw,
+                http.headers_get_unsafe(req.headers, "user-agent"),
+                http.headers_get_unsafe(req.headers, "referer"),
+            )
 
-			h.next.?.handle(h.next.?, req, res)
-		},
-	)
+            h.next.?.handle(h.next.?, req, res)
+        },
+    )
 
-	log.info("Listening on port 8080")
+    log.info("Listening on port 8080")
 
-	err := http.listen_and_serve(&server, logged, net.Endpoint{
-		address = net.IP4_Any,
-		port    = 8080,
-	})
-	fmt.assertf(err == nil, "Server error: %v", err)
+    err := http.listen_and_serve(&server, logged, net.Endpoint{
+        address = net.IP4_Any,
+        port    = 8080,
+    })
+    fmt.assertf(err == nil, "Server error: %v", err)
 }
 
 Page :: enum {
-	All,
-	Active,
-	Completed,
+    All,
+    Active,
+    Completed,
 }
 
 page_parse :: proc(val: string) -> Page {
-	switch val {
-	case "active":    return .Active
-	case "completed": return .Completed
-	case:             return .All
-	}
+    switch val {
+    case "active":    return .Active
+    case "completed": return .Completed
+    case:             return .All
+    }
 }
 
 page_from_path :: proc(req: string) -> Page {
-	page := req[strings.last_index_byte(req, '/') + 1:]
-	return page_parse(page)
+    page := req[strings.last_index_byte(req, '/') + 1:]
+    return page_parse(page)
 }
 
 handler_index :: proc(req: ^http.Request, res: ^http.Response) {
-	session := session_get(req)
+    session := session_get(req)
     
-	is_htmx := http.headers_has_unsafe(req.headers, "hx-request")
-	respond_list(res, !is_htmx, session, page_from_path(req.url.path))
+    is_htmx := http.headers_has_unsafe(req.headers, "hx-request")
+    respond_list(res, !is_htmx, session, page_from_path(req.url.path))
 }
 
 handler_create_todo :: proc(req: ^http.Request, res: ^http.Response) {
-	context.user_ptr = req
+    context.user_ptr = req
     // TODO: max length should be later in the args.
-	http.body(req, -1, res, proc(res: rawptr, raw_body: http.Body, err: http.Body_Error) {
-		req := cast(^http.Request)context.user_ptr
-		res := cast(^http.Response)res
+    http.body(req, -1, res, proc(res: rawptr, raw_body: http.Body, err: http.Body_Error) {
+        req := cast(^http.Request)context.user_ptr
+        res := cast(^http.Response)res
 
         if err != nil {
-			log.warnf("Body error: %v", err)
-			http.respond(res, http.body_error_status(err))
+            log.warnf("Body error: %v", err)
+            http.respond(res, http.body_error_status(err))
             return
         }
 
         body, ok := http.body_url_encoded(raw_body)
         if !ok {
-			log.warnf("Invalid URL encoded body: %q", raw_body)
-			http.respond(res, http.Status.Unprocessable_Content)
+            log.warnf("Invalid URL encoded body: %q", raw_body)
+            http.respond(res, http.Status.Unprocessable_Content)
             return
         }
 
@@ -242,14 +242,14 @@ handler_create_todo :: proc(req: ^http.Request, res: ^http.Response) {
             if werr    := io.close(w);                        werr != nil do log.error(werr)
             return
         }
-	})
+    })
 }
 
 handler_todo_patch :: proc(req: ^http.Request, res: ^http.Response) {
-	context.user_ptr = req
-	http.body(req, -1, res, proc(res: rawptr, raw_body: http.Body, err: http.Body_Error) {
-		req := cast(^http.Request)context.user_ptr
-		res := cast(^http.Response)res
+    context.user_ptr = req
+    http.body(req, -1, res, proc(res: rawptr, raw_body: http.Body, err: http.Body_Error) {
+        req := cast(^http.Request)context.user_ptr
+        res := cast(^http.Response)res
 
         if err != nil {
             log.warnf("Body error: %v", err)
@@ -338,22 +338,22 @@ handler_todo_patch :: proc(req: ^http.Request, res: ^http.Response) {
 }
 
 handler_delete_todo :: proc(req: ^http.Request, res: ^http.Response) {
-	int_id, ok := strconv.parse_i64_of_base(req.url_params[0], 10)
-	if !ok || int_id < 0 {
-		http.respond(res, http.Status.Unprocessable_Content)
-		return
-	}
+    int_id, ok := strconv.parse_i64_of_base(req.url_params[0], 10)
+    if !ok || int_id < 0 {
+        http.respond(res, http.Status.Unprocessable_Content)
+        return
+    }
 
-	session := session_get(req)
-	if item, found := session_get_todo(session, int(int_id)).?; found {
-		if item.todo.completed {
-			session.completed -= 1
-		}
+    session := session_get(req)
+    if item, found := session_get_todo(session, int(int_id)).?; found {
+        if item.todo.completed {
+            session.completed -= 1
+        }
 
-		delete(item.todo.title)
-		unordered_remove(&session.list, item.index)
-		free(item.todo)
-	}
+        delete(item.todo.title)
+        unordered_remove(&session.list, item.index)
+        free(item.todo)
+    }
 
     rw: http.Response_Writer
     buf: [512]byte
@@ -362,65 +362,65 @@ handler_delete_todo :: proc(req: ^http.Request, res: ^http.Response) {
     http.response_status(res, .OK)
     http.headers_set_content_type(&res.headers, http.mime_to_content_type(.Html))
 
-	// Send updated count.
-	bytes.buffer_grow(&res._buf, tmpl_count.approx_bytes)
-	if _, err := tmpl_count.with(w, count(session)); err  != nil do log.error(err)
+    // Send updated count.
+    bytes.buffer_grow(&res._buf, tmpl_count.approx_bytes)
+    if _, err := tmpl_count.with(w, count(session)); err  != nil do log.error(err)
     if werr   := io.close(w);                        werr != nil do log.error(werr)
 }
 
 handler_toggle :: proc(req: ^http.Request, res: ^http.Response) {
-	session := session_get(req)
+    session := session_get(req)
 
-	all_completed := len(session.list) == session.completed
-	for todo in session.list {
+    all_completed := len(session.list) == session.completed
+    for todo in session.list {
         switch {
         case  todo.completed &&  all_completed: session.completed -= 1
         case !todo.completed && !all_completed: session.completed += 1
         }
-		todo.completed = !all_completed
-	}
+        todo.completed = !all_completed
+    }
 
-	respond_list(res, false, session, page_from_path(http.headers_get_unsafe(req.headers, "hx-current-url")))
+    respond_list(res, false, session, page_from_path(http.headers_get_unsafe(req.headers, "hx-current-url")))
 }
 
 handler_clean :: proc(req: ^http.Request, res: ^http.Response) {
-	session := session_get(req)
+    session := session_get(req)
 
-	for todo, i in session.list {
-		if todo.completed {
-			session.completed -= 1
-			delete(todo.title)
-			unordered_remove(&session.list, i)
-			free(todo)
-		}
-	}
+    for todo, i in session.list {
+        if todo.completed {
+            session.completed -= 1
+            delete(todo.title)
+            unordered_remove(&session.list, i)
+            free(todo)
+        }
+    }
 
-	respond_list(res, false, session, page_from_path(http.headers_get_unsafe(req.headers, "hx-current-url")))
+    respond_list(res, false, session, page_from_path(http.headers_get_unsafe(req.headers, "hx-current-url")))
 }
 
 respond_list :: proc(res: ^http.Response, full_page: bool, session: ^Session, page: Page) {
-	l: List
-	l.count     = count(session)
-	l.count.oob = false
-	l.page      = page
-	l.todos     = session.list[:]
+    l: List
+    l.count     = count(session)
+    l.count.oob = false
+    l.page      = page
+    l.todos     = session.list[:]
 
-	slice.sort_by(session.list[:], proc(a, b: ^Todo) -> bool {return a.id > b.id})
+    slice.sort_by(session.list[:], proc(a, b: ^Todo) -> bool {return a.id > b.id})
 
-	// Apply filtering.
-	if page == .Active || page == .Completed {
-		n := l.count.completed if page == .Completed else l.count.active
-		filtered := make([dynamic]^Todo, 0, n, context.temp_allocator)
-		defer l.todos = filtered[:]
+    // Apply filtering.
+    if page == .Active || page == .Completed {
+        n := l.count.completed if page == .Completed else l.count.active
+        filtered := make([dynamic]^Todo, 0, n, context.temp_allocator)
+        defer l.todos = filtered[:]
 
-		for todo in session.list {
-			if todo.completed && page == .Completed {
-				append(&filtered, todo)
-			} else if !todo.completed && page == .Active {
-				append(&filtered, todo)
-			}
-		}
-	}
+        for todo in session.list {
+            if todo.completed && page == .Completed {
+                append(&filtered, todo)
+            } else if !todo.completed && page == .Active {
+                append(&filtered, todo)
+            }
+        }
+    }
 
     rw: http.Response_Writer
     buf: [512]byte
@@ -430,8 +430,8 @@ respond_list :: proc(res: ^http.Response, full_page: bool, session: ^Session, pa
     http.response_status(res, .OK)
     http.headers_set_content_type(&res.headers, http.mime_to_content_type(.Html))
 
-	tmpl := tmpl_index if full_page else tmpl_list
-	bytes.buffer_grow(&res._buf, tmpl.approx_bytes)
-	if _, err := tmpl.with(w, l); err  != nil do log.error(err)
+    tmpl := tmpl_index if full_page else tmpl_list
+    bytes.buffer_grow(&res._buf, tmpl.approx_bytes)
+    if _, err := tmpl.with(w, l); err  != nil do log.error(err)
     if werr   := io.close(w);     werr != nil do log.error(werr)
 }

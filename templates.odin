@@ -9,10 +9,10 @@ List :: struct {
 }
 
 Count :: struct {
-	total:     int,
+	total:	   int,
 	active:    int,
 	completed: int,
-	oob:       bool,
+	oob:	   bool,
 }
 
 count :: proc(session: ^Session) -> Count {

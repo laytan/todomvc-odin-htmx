@@ -10,15 +10,15 @@ import "vendor/http"
 import "vendor/http/nbio"
 
 Session :: struct {
-	list:          [dynamic]^Todo,
-	completed:     int,
+	list:		   [dynamic]^Todo,
+	completed:	   int,
 	last_activity: time.Time,
 }
 
 Sessions :: struct {
-	entries:            map[string]^Session,
+	entries:			map[string]^Session,
 	registered_cleaner: bool,
-	mu:                 sync.RW_Mutex,
+	mu:					sync.RW_Mutex,
 }
 
 @(private = "file")
