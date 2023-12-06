@@ -3,7 +3,6 @@ package main
 import "core:encoding/base32"
 import "core:log"
 import "core:math/rand"
-import "core:strings"
 import "core:sync"
 import "core:time"
 
@@ -57,9 +56,8 @@ session_middleware :: proc(h: ^http.Handler, req: ^http.Request, res: ^http.Resp
 
 	// Make the browser make the request again, this time with the session set.
 	// Probably not the greatest way of doing this lol.
-	res.status = .Found
-	res.headers["location"] = INDEX
-	http.respond(res)
+	http.headers_set_unsafe(&res.headers, "location", INDEX)
+	http.respond(res, http.Status.Found)
 }
 
 /*
@@ -101,15 +99,8 @@ sessions_register_cleaner :: proc(s: ^http.Server) {
 Gets the session out of the request cookies.
 */
 session_get :: proc(req: ^http.Request) -> ^Session {
-	session: string
-	if cookies, ok := req.headers["cookie"]; ok {
-		if i := strings.last_index(cookies, "session="); i > -1 {
-			session = cookies[i + len("session="):]
-			if next := strings.index_byte(session, ';'); next > -1 {
-				session = session[:next]
-			}
-		}
-	}
+	session, ok := http.request_cookie_get(req, "session")
+	if !ok do log.warnf("could not parse session out of cookie: %q", http.headers_get_unsafe(req.headers, "cookie"))
 
 	sync.shared_guard(&sessions.mu)
 	s := sessions.entries[session]

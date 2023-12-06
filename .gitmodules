@@ -4,3 +4,6 @@
 [submodule "vendor/temple"]
 	path = vendor/temple
 	url = git@github.com:laytan/temple.git
+[submodule "vendor/obacktracing"]
+	path = vendor/obacktracing
+	url = git@github.com:laytan/obacktracing.git
