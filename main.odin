@@ -155,6 +155,17 @@ page_from_path :: proc(req: string) -> Page {
 
 handler_index :: proc(req: ^http.Request, res: ^http.Response) {
 	session := session_get(req)
+    
+    trace := bt.backtrace_get(16, context.temp_allocator)
+    symbolized, err := bt.backtrace_messages(trace, context.temp_allocator)
+    if err != nil {
+        fmt.eprintln("could not get backtrace: ", err)
+        log.warnf("could not get backtrace: %v", err)
+    } else {
+        log.info("got backtrace")
+        fmt.eprintln("[backtrace]")
+        bt.format(symbolized)
+    }
 
 	is_htmx := http.headers_has_unsafe(req.headers, "hx-request")
 	respond_list(res, !is_htmx, session, page_from_path(req.url.path))
