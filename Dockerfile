@@ -6,7 +6,7 @@ ENV PATH "$PATH:/usr/lib/llvm14/bin:/odin"
 
 RUN apk add --no-cache git bash make clang14 llvm14-dev musl-dev linux-headers
 
-RUN git clone --depth=1 https://github.com/odin-lang/Odin . && \
+RUN git clone --depth=1 https://github.com/laytan/Odin --branch=fix-stat-struct-layout-linux-arm64 . && \
 	LLVM_CONFIG=llvm14-config make
 
 WORKDIR /app
@@ -14,7 +14,7 @@ WORKDIR /app
 COPY . .
 
 RUN odin build vendor/temple/cli -out:./temple && ./temple . vendor/temple
-RUN odin build . -o:speed -disable-assert -no-bounds-check -out:todomvc -extra-linker-flags:"-static"
+RUN odin build . -o:speed -disable-assert -no-bounds-check -debug -out:todomvc -extra-linker-flags:"-static"
 
 FROM scratch
 
