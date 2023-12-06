@@ -28,8 +28,11 @@ sessions: Sessions
 Makes sure every request has a valid session.
 */
 session_middleware :: proc(h: ^http.Handler, req: ^http.Request, res: ^http.Response) {
+	log.info("sessions", sessions)
+
 	session := session_get(req)
 	if session != nil || req.url.path == "/health" {
+		if session != nil do log.info("existing session")
 		h.next.?.handle(h.next.?, req, res)
 		return
 	}
@@ -39,6 +42,8 @@ session_middleware :: proc(h: ^http.Handler, req: ^http.Request, res: ^http.Resp
 	n := rand.read(id[:])
 	assert(n == 16)
 	sid := base32.encode(id[:])
+
+	log.info("new session")
 
 	session = new(Session)
 	session.last_activity = time.now()
@@ -100,10 +105,12 @@ Gets the session out of the request cookies.
 */
 session_get :: proc(req: ^http.Request) -> ^Session {
 	session, ok := http.request_cookie_get(req, "session")
+	log.infof("cookie header: %q, session: %q", http.headers_get_unsafe(req.headers, "cookie"), http.request_cookie_get(req, "session"))
 	if !ok do return nil
 
 	sync.shared_guard(&sessions.mu)
 	s := sessions.entries[session]
+	log.info("got existing session: ", s)
 	if s != nil do s.last_activity = time.now()
 	return s
 }
