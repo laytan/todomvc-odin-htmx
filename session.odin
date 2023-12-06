@@ -100,7 +100,7 @@ Gets the session out of the request cookies.
 */
 session_get :: proc(req: ^http.Request) -> ^Session {
 	session, ok := http.request_cookie_get(req, "session")
-	if !ok do log.warnf("could not parse session out of cookie: %q", http.headers_get_unsafe(req.headers, "cookie"))
+	if !ok do return nil
 
 	sync.shared_guard(&sessions.mu)
 	s := sessions.entries[session]
